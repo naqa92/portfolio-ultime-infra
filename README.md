@@ -137,7 +137,7 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
 
 ## TODO
 
-- Problème de perf ALB : 504 Gateway Time-out
+- Destroy terraform : Gérer le loadbalancer + les security groups attachés à celui-ci
 
 - ArgoCD Bootstrap :
 
