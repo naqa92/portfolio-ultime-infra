@@ -1,0 +1,100 @@
+name: "infra"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action à réaliser"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+permissions: # Pour le GITHUB_TOKEN par défaut
+  contents: read # Checkout du code
+
+env:
+  TF_VERSION: "1.12.0"
+  AWS_REGION: "eu-west-3"
+  TERRAFORM_DIR: "./terraform"
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TERRAFORM_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.action == 'plan' || inputs.action == 'apply'))
+        run: terraform plan -no-color -out=tfplan # -no-color pour éviter les caractères spéciaux
+
+      - name: Terraform Apply
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
+
+      - name: Terraform Summary
+        if: always()
+        run: |
+          echo "## Terraform Execution Summary" > summary.md
+          echo "" >> summary.md
+          echo "- **Action**: ${{ github.event.inputs.action || 'apply' }}" >> summary.md
+          echo "- **Status**: ${{ job.status }}" >> summary.md
+          echo "- **Terraform Version**: ${{ env.TF_VERSION }}" >> summary.md
+          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> summary.md
+          echo "- **Branch**: ${{ github.ref_name }}" >> summary.md
+          echo "- **Commit**: ${{ github.sha }}" >> summary.md
+          echo "- **Run Number**: ${{ github.run_number }}" >> summary.md
+          echo "" >> summary.md
+
+      - name: Upload Summary Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-summary
+          path: ${{ env.TERRAFORM_DIR }}/summary.md
+          retention-days: 7
