@@ -46,7 +46,6 @@ portfolio-ultime-infra/
 │   ├── providers.tf            # Providers Terraform
 │   ├── variables.tf            # Variables
 │   ├── vpc.tf                  # Configuration VPC
-│   └── terraform.tfvars.example # Exemple de variables
 └── README.md
 ```
 
@@ -116,7 +115,7 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
 ## Déploiement
 
 - Installation d'ArgoCD via chart Helm
-- Déploiement des applications ArgoCD (App-of-apps / ApplicationSet ?)
+- Déploiement des applications ArgoCD via la stratégie App-of-apps
 
 ![ArgoCD UI](images/argocd.png)
 
@@ -137,12 +136,13 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
 
 ## TODO
 
-- Destroy terraform : Gérer le loadbalancer + les security groups attachés à celui-ci
+- Destroy terraform : Gérer le load balancer + les security groups attachés à celui-ci
 
-- ArgoCD Bootstrap :
+- ArgoCD :
 
-  - Pattern App-of-Apps ou ApplicationSet
   - Repo config privé : Secret pour la synchronisation du repo "portfolio-ultime-config"
+  - Rendered manifests pattern
+  - Déploiements : Argo Rollouts et Observabilité (avec Metrics server)
 
 - EKS Production ready :
 
@@ -151,7 +151,7 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
   - Access Entries : Mapping IAM ↔️ utilisateurs Kubernetes automatisé pour gérer plus finement les permissions d'accès au cluster (remplacement moderne de aws-auth / actuellement `enable_cluster_creator_admin_permissions = true`)
   - Chiffrement EBS via `encryption_config` (KMS)
   - Logging control plane (CloudWatch)
-  - Backup
+  - Backups : Cluster et Database
   - Branch Protection pour pipeline avec :
     - Distinction entre plan (PR) et apply (merge)
     - Approbation manuelle via environment production

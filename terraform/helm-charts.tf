@@ -39,7 +39,7 @@ resource "helm_release" "argocd" { # Installation d'ArgoCD
   depends_on = [module.eks]
 }
 
-resource "helm_release" "argocd-apps" { # Déploiement des applications ArgoCD
+resource "helm_release" "argocd_apps" { # Déploiement des applications ArgoCD
   name       = "argocd-apps"
   repository = "https://argoproj.github.io/argo-helm"
   version    = "2.0.2"
@@ -49,17 +49,17 @@ resource "helm_release" "argocd-apps" { # Déploiement des applications ArgoCD
   values = [
     yamlencode({
       applications = {
-        app = {
+        root-app = { # Stratégie App of Apps
           namespace = "argocd"
           project   = "default"
           source = {
-            path           = "."
+            path           = "apps"
             repoURL        = "https://github.com/naqa92/portfolio-ultime-config.git"
-            targetRevision = "HEAD"
+            targetRevision = "main"
           }
           destination = {
             server    = "https://kubernetes.default.svc"
-            namespace = "demo"
+            namespace = "" # Namespace défini dans chaque application
           }
           syncPolicy = {
             automated = {
