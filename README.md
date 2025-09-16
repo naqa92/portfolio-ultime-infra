@@ -108,7 +108,16 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
 
 ![ALB](images/alb.png)
 
----
+### AWS Load Balancer Controller - Architecture de flux
+
+Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI → Pods
+
+### AWS Load Balancer Controller - Values helm
+
+- `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
+- `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
+
+> à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes
 
 # Bootstrap ArgoCD
 

@@ -18,6 +18,12 @@ resource "helm_release" "aws_load_balancer_controller" {
       }
       region = var.region
       vpcId  = module.vpc.vpc_id
+      
+      defaultTargetType = "ip"  # Ciblage direct des IPs de pods
+      
+      defaultTags = {
+        "alb.ingress.kubernetes.io/target-group-attributes" = "deregistration_delay.timeout_seconds=120"
+      }
     })
   ]
 
