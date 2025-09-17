@@ -11,7 +11,6 @@ Ce projet utilise GitHub Actions pour automatiser le déploiement d'une infrastr
 
 - Terraform >= 1.12.0
 - AWS CLI configuré
-- Configurer la variable `allowed_ips` : Adresse IP en /32
 - Repo git dédié pour ArgoCD : `portfolio-ultime-config`
 - Bucket S3 backend : `portfolio-ultime-infra`
 
@@ -30,6 +29,11 @@ aws s3api create-bucket \
 | ----------------------- | --------------- |
 | `AWS_ACCESS_KEY_ID`     | Clé d'accès AWS |
 | `AWS_SECRET_ACCESS_KEY` | Clé secrète AWS |
+
+Terraform
+
+- `allowed_ips` : Adresse IP personnelle en /32
+- `external_dns_hosted_zone_arns` : Hosted Zone ID (Route53)
 
 ---
 
@@ -97,10 +101,13 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
 
 Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer l'OIDC / trust policy)
 
-> Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation via EKS Pod Identity.
+> _Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation via EKS Pod Identity._
+
+> _Note: L'association Pod Identity peut être créée AVANT le ServiceAccount, voir [doc](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)_
 
 - AWS EBS CSI Driver (sans KMS car optionnel)
 - AWS Load Balancer Controller
+- External DNS
 
 ![Pod Identity](images/pod-identity.png)
 
