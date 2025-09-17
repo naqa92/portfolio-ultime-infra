@@ -95,7 +95,9 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
 
 ## EKS Pod Identity (module terraform-aws-eks-pod-identity)
 
-Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer l'OIDC / trust policy)
+Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer l'OIDC / trust policy)
+
+> Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation via EKS Pod Identity.
 
 - AWS EBS CSI Driver (sans KMS car optionnel)
 - AWS Load Balancer Controller

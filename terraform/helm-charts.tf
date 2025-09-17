@@ -8,6 +8,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-alb"
   version    = "1.13.4"
+  create_namespace = true
 
   values = [
     yamlencode({
