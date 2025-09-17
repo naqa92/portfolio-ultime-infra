@@ -21,11 +21,16 @@ module "eks" {
   additional_security_group_ids = [module.cluster_sg.security_group_id, module.node_sg.security_group_id]
 
   addons = {
-    coredns                = {}
     eks-pod-identity-agent = { before_compute = true }
-    kube-proxy             = {}
     vpc-cni                = { before_compute = true }
-    aws-ebs-csi-driver     = {}
+    aws-ebs-csi-driver     = {
+      pod_identity_association = [{
+        role_arn        = module.ebs_csi_pod_identity.iam_role_arn
+        service_account = "ebs-csi-controller-sa"
+      }]
+    }
+    coredns                = {}
+    kube-proxy             = {}
   }
 
   eks_managed_node_groups = {

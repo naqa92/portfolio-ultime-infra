@@ -6,21 +6,21 @@ resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
+  namespace  = "kube-alb"
   version    = "1.13.4"
 
   values = [
     yamlencode({
-      clusterName = module.eks.cluster_name
+      clusterName = var.cluster_name
       serviceAccount = {
         create = true
         name   = "aws-load-balancer-controller"
       }
       region = var.region
       vpcId  = module.vpc.vpc_id
-      
-      defaultTargetType = "ip"  # Ciblage direct des IPs de pods
-      
+
+      defaultTargetType = "ip" # Ciblage direct des IPs de pods
+
       defaultTags = {
         "alb.ingress.kubernetes.io/target-group-attributes" = "deregistration_delay.timeout_seconds=120"
       }
@@ -42,7 +42,7 @@ resource "helm_release" "argocd" { # Installation d'ArgoCD
   namespace        = "argocd"
   create_namespace = true
 
-  depends_on = [module.eks]
+  depends_on = [helm_release.aws_load_balancer_controller]
 }
 
 resource "helm_release" "argocd_apps" { # Déploiement des applications ArgoCD
@@ -59,7 +59,7 @@ resource "helm_release" "argocd_apps" { # Déploiement des applications ArgoCD
           namespace = "argocd"
           project   = "default"
           source = {
-            path           = "apps"
+            path           = "argocd-apps"
             repoURL        = "https://github.com/naqa92/portfolio-ultime-config.git"
             targetRevision = "main"
           }

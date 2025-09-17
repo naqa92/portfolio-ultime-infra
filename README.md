@@ -102,6 +102,8 @@ Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis 
 
 ![Pod Identity](images/pod-identity.png)
 
+> _Pour EBS CSI Driver, c'est géré directement dans la partie addons du module EKS_
+
 ## Composants additionnels
 
 - AWS Load Balancer Controller (via Helm)
@@ -145,12 +147,16 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 
 ## TODO
 
-- Destroy terraform : Gérer le load balancer + les security groups attachés à celui-ci
+- Terraform :
+
+  - Destroy : Gérer le load balancer (obligé de faire `helm uninstall aws-load-balancer-controller -n kube-alb` avant `tf destroy`)
+  - Passer à AWS Gateway Controller
 
 - ArgoCD :
 
-  - Repo config privé : Secret pour la synchronisation du repo "portfolio-ultime-config"
+  - Secret manager pour la synchronisation du repo `portfolio-ultime-config`
   - Rendered manifests pattern
+  - Réorganisation du repo `portfolio-ultime-config`
   - Déploiements : Argo Rollouts et Observabilité (avec Metrics server)
 
 - EKS Production ready :
