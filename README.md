@@ -103,11 +103,13 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 > _Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation via EKS Pod Identity._
 
-> _Note: L'association Pod Identity peut être créée AVANT le ServiceAccount, voir [doc](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)_
+> _Note: L'association Pod Identity peut être créée AVANT le ServiceAccount, ce qui facilite l'automatisation. voir [doc](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)_
 
 - AWS EBS CSI Driver (sans KMS car optionnel)
 - AWS Load Balancer Controller
 - External DNS
+- Cert Manager
+- Cert Manager Sync
 
 ![Pod Identity](images/pod-identity.png)
 
@@ -128,7 +130,7 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 - `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
 - `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
 
-> à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes
+> _à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes_
 
 # Bootstrap ArgoCD
 
@@ -138,6 +140,58 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 - Déploiement des applications ArgoCD via la stratégie App-of-apps
 
 ![ArgoCD UI](images/argocd.png)
+
+## External DNS
+
+Gestion automatique des enregistrements DNS Route 53
+
+Annotation de l'ingress à ajouter pour créer une entrée de type A automatiquement :
+
+```yaml
+external-dns.alpha.kubernetes.io/hostname: app.ndebaa.com
+```
+
+![Route53](images/route53.png)
+
+## Cert Manager
+
+Solver DNS-01 avec Route53 utilisé pour une meilleure intégration.
+
+Avantages :
+
+- ✅ Plus robuste : Pas de dépendance sur la résolution DNS interne du cluster
+- ✅ Simplicité : cert-manager vérifie directement via l'API Route53
+- ✅ Compatible avec l'infrastructure : external-dns avec permissions Route53
+- ✅ Wildcards supportés si besoin
+- ✅ Production-ready : Solution standard pour les clusters privés
+
+## Cert Manager Sync
+
+- **Projet** : [cert-manager-sync](https://github.com/robertlestak/cert-manager-sync)
+- **Contexte** : ALB Controller n’utilise pas automatiquement les secrets TLS générés par cert-manager pour créer un listener HTTPS sur l’ALB car il attend un ARN ACM (annotation `alb.ingress.kubernetes.io/certificate-arn`)
+- **Fonctionnement** :
+  - Écoute les Issuers/Certificates cert-manager.
+  - Crée automatiquement un certificat dans ACM.
+  - Synchronise l’ARN ACM dans les annotations du Secret Kubernetes.
+
+Annotation de l'ingress à ajouter pour transmettre un secretTemplate au Certificat auto-généré :
+
+```yaml
+cert-manager.io/secret-template: |
+  {"annotations": {"cert-manager-sync.lestak.sh/sync-enabled":"true", "cert-manager-sync.lestak.sh/acm-enabled":"true", "cert-manager-sync.lestak.sh/acm-region": "eu-west-1"}}
+```
+
+Certificat cert-manager :
+
+![Certificat cert-manager](images/cert-manager.png)
+
+Certificat ACM :
+
+![Certificat ACM](images/acm.png)
+
+## CNPG
+
+Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire et 1 secondaire)
 
 ---
 
@@ -159,23 +213,28 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 - Terraform :
 
   - Destroy : Gérer le load balancer (obligé de faire `helm uninstall aws-load-balancer-controller -n kube-alb` avant `tf destroy`)
-  - Passer à AWS Gateway Controller
+  - Passer d'ALB Controller à Gateway Controller
 
 - ArgoCD :
 
-  - Secret manager pour la synchronisation du repo `portfolio-ultime-config`
+  - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
   - Rendered manifests pattern
-  - Réorganisation du repo `portfolio-ultime-config`
-  - Déploiements : Argo Rollouts et Observabilité (avec Metrics server)
+  - Réorganisation du repo `portfolio-ultime-config` : structure, targetRevisions et référence des values
+  - Déploiements :
+    - Argo Rollouts
+    - Observabilité (avec Metrics server)
 
 - EKS Production ready :
 
   - Au moins 3 nodes
   - Au moins 3 AZ
-  - Access Entries : Mapping IAM ↔️ utilisateurs Kubernetes automatisé pour gérer plus finement les permissions d'accès au cluster (remplacement moderne de aws-auth / actuellement `enable_cluster_creator_admin_permissions = true`)
+  - Access Entries : Mapping IAM ↔️ utilisateurs Kubernetes automatisé pour gérer plus finement les permissions d'accès au cluster (remplacement moderne de aws-auth)
+    - _actuellement `enable_cluster_creator_admin_permissions = true`_
   - Chiffrement EBS via `encryption_config` (KMS)
-  - Logging control plane (CloudWatch)
-  - Backups : Cluster et Database
+  - Logging control plane
+  - Backups : Cluster (Velero) et Database (S3)
   - Branch Protection pour pipeline avec :
     - Distinction entre plan (PR) et apply (merge)
     - Approbation manuelle via environment production
+  - CNI : Cillium
+  - Auto-scaling : Karpenter

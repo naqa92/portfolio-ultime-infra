@@ -69,3 +69,32 @@ module "cert_manager_pod_identity" {
 
   tags = var.tags
 }
+
+module "cert_manager_sync_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+
+  name = "cert-manager-sync"
+
+  attach_custom_policy = true # ACM n'est pas couvert par défaut
+  
+  policy_statements = [
+    {
+      sid    = "ACMFullAccess"
+      effect = "Allow"
+      actions = [
+        "acm:*"
+      ]
+      resources = ["*"]
+    }
+  ]
+
+  associations = {
+    cert_manager_sync = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "kube-certmanager"
+      service_account = "cert-manager-sync"
+    }
+  }
+
+  tags = var.tags
+}
