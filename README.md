@@ -174,6 +174,8 @@ Avantages :
   - Crée automatiquement un certificat dans ACM.
   - Synchronise l’ARN ACM dans les annotations du Secret Kubernetes.
 
+![cert-manager-sync](images/cert-manager-sync.png)
+
 Annotation de l'ingress à ajouter pour transmettre un secretTemplate au Certificat auto-généré :
 
 ```yaml
