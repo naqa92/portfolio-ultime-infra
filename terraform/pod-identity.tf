@@ -37,7 +37,7 @@ module "external_dns_pod_identity" {
 
   name = "external-dns"
 
-  attach_external_dns_policy = true
+  attach_external_dns_policy    = true
   external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z075458018F27SBDB41PA"]
 
   associations = {
@@ -56,7 +56,7 @@ module "cert_manager_pod_identity" {
 
   name = "cert-manager"
 
-  attach_cert_manager_policy = true
+  attach_cert_manager_policy    = true
   cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z075458018F27SBDB41PA"]
 
   associations = {
@@ -76,7 +76,7 @@ module "cert_manager_sync_pod_identity" {
   name = "cert-manager-sync"
 
   attach_custom_policy = true # ACM n'est pas couvert par défaut
-  
+
   policy_statements = [
     {
       sid    = "ACMFullAccess"

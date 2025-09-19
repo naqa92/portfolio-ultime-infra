@@ -1,37 +1,4 @@
 ################################################################################
-# AWS Load Balancer Controller
-################################################################################
-
-resource "helm_release" "aws_load_balancer_controller" {
-  name             = "aws-load-balancer-controller"
-  repository       = "https://aws.github.io/eks-charts"
-  chart            = "aws-load-balancer-controller"
-  namespace        = "kube-alb"
-  version          = "1.13.4"
-  create_namespace = true
-
-  values = [
-    yamlencode({
-      clusterName = var.cluster_name
-      serviceAccount = {
-        create = true
-        name   = "aws-load-balancer-controller"
-      }
-      region = var.region
-      vpcId  = module.vpc.vpc_id
-
-      defaultTargetType = "ip" # Ciblage direct des IPs de pods
-
-      defaultTags = {
-        "alb.ingress.kubernetes.io/target-group-attributes" = "deregistration_delay.timeout_seconds=120"
-      }
-    })
-  ]
-
-  depends_on = [module.eks, module.aws_lb_controller_pod_identity]
-}
-
-################################################################################
 # Bootstrap ArgoCD
 ################################################################################
 
@@ -43,7 +10,7 @@ resource "helm_release" "argocd" { # Installation d'ArgoCD
   namespace        = "argocd"
   create_namespace = true
 
-  depends_on = [helm_release.aws_load_balancer_controller]
+  depends_on = [module.eks]
 }
 
 resource "helm_release" "argocd_apps" { # Déploiement des applications ArgoCD
