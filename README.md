@@ -129,6 +129,7 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 
 - `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
 - `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
+- `vpcTags` : Nom du cluster pour récupérer vpcID automatiquement
 
 > _à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes_
 
@@ -157,7 +158,7 @@ external-dns.alpha.kubernetes.io/hostname: app.ndebaa.com
 
 Solver DNS-01 avec Route53 utilisé pour une meilleure intégration.
 
-Avantages :
+Avantages par rapport au solver HTTP-01 :
 
 - ✅ Plus robuste : Pas de dépendance sur la résolution DNS interne du cluster
 - ✅ Simplicité : cert-manager vérifie directement via l'API Route53
@@ -214,7 +215,7 @@ Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire
 
 - Terraform :
 
-  - Destroy : Gérer le load balancer (obligé de faire `helm uninstall aws-load-balancer-controller -n kube-alb` avant `tf destroy`)
+  - Destroy : Gérer load balancer, route53 et ACM
   - Passer d'ALB Controller à Gateway Controller
 
 - ArgoCD :
