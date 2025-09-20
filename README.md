@@ -253,4 +253,4 @@ Outil d'analyse de sécurité automatisée (DAST) :
     - Distinction entre plan (PR) et apply (merge)
     - Approbation manuelle via environment production
   - CNI : Cillium
-  - Auto-scaling : Karpenter
+  - Auto-scaling : Auto-Scaler (simple) / Karpenter (avancé)

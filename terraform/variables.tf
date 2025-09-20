@@ -50,7 +50,7 @@ variable "kubernetes_version" {
 variable "node_instance_types" {
   description = "Instance types for EKS managed node groups"
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["t3.large"]  # t3.large permet ~35 pods par node vs 17 pour t3.medium
 }
 
 variable "node_min_size" {
@@ -62,7 +62,7 @@ variable "node_min_size" {
 variable "node_max_size" {
   description = "Maximum number of nodes in the node group"
   type        = number
-  default     = 3
+  default     = 5  # Permet l'auto-scaling jusqu'à 5 nodes
 }
 
 variable "node_desired_size" {
