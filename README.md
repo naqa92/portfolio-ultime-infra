@@ -196,6 +196,19 @@ Certificat ACM :
 
 Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire et 1 secondaire)
 
+## KubeScape
+
+Outil open-source de sécurité et de conformité pour Kubernetes qui analyse les configurations, détecte les vulnérabilités et applique les bonnes pratiques dans les clusters et les manifests.
+
+Dashboard utilisé : Headlamp (via plugin)
+
+## secureCodeBox
+
+Outil d'analyse de sécurité automatisée (DAST) :
+
+- Définition : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
+- Fonctionnement : AutoDiscovery + ScheduledScan pour des scans automatiques avec upload vers bucket S3.
+
 ---
 
 # Pipeline dédiée à Terraform

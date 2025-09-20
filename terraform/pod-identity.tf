@@ -98,3 +98,48 @@ module "cert_manager_sync_pod_identity" {
 
   tags = var.tags
 }
+
+module "securecodebox_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+
+  name = "securecodebox"
+
+  attach_custom_policy = true # S3 n'est pas couvert par défaut
+
+  policy_statements = [
+    {
+      sid    = "AllowPutObjectsToReportsPrefix"
+      effect = "Allow"
+      actions = [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:PutObjectTagging"
+      ]
+      # cible les objets sous le préfixe reports/
+      resources = [
+        "arn:aws:s3:::portfolio-ultime-securecodebox/reports/*"
+      ]
+    },
+    {
+      sid    = "AllowListBucketOnPortfolioUltime"
+      effect = "Allow"
+      actions = [
+        "s3:ListBucket"
+      ]
+      # permission ListBucket s'applique au bucket lui-même
+      resources = [
+        "arn:aws:s3:::portfolio-ultime-securecodebox"
+      ]
+    }
+  ]
+
+  associations = {
+    reports_uploader = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "securecodebox-system"
+      service_account = "securecodebox"
+    }
+  }
+
+  tags = var.tags
+}
