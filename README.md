@@ -177,7 +177,7 @@ Avantages par rapport au solver HTTP-01 :
 - ✅ Wildcards supportés si besoin
 - ✅ Production-ready : Solution standard pour les clusters privés
 
-## Cert Manager Sync
+### Cert Manager Sync
 
 - **Projet** : [cert-manager-sync](https://github.com/robertlestak/cert-manager-sync)
 - **Contexte** : ALB Controller n’utilise pas automatiquement les secrets TLS générés par cert-manager pour créer un listener HTTPS sur l’ALB car il attend un ARN ACM (annotation `alb.ingress.kubernetes.io/certificate-arn`)
@@ -203,34 +203,46 @@ Certificat ACM :
 
 ![Certificat ACM](images/acm.png)
 
-## CNPG
+## CNPG (PostgreSQL)
 
 Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire et 1 secondaire)
 
-## KubeScape
+## KubeScape (Test sécurité)
 
 Outil open-source de sécurité et de conformité pour Kubernetes qui analyse les configurations, détecte les vulnérabilités et applique les bonnes pratiques dans les clusters et les manifests.
 
 Dashboard utilisé : Headlamp (via plugin)
 
-## secureCodeBox
+## secureCodeBox (DAST)
 
-Outil d'analyse de sécurité automatisée (DAST) :
+Outil d'analyse de sécurité automatisée (DAST) : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
 
-- Définition : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
-- Fonctionnement :
-  - Opérateur avec authentification s3 configurée
-  - Chart Helm `zap-automation-framework` installé dans le namespace de l'application à scanner (ns:demo, app:todolist)
-  - Auto-Discovery avec scans automatisés (ScheduledScan) + upload vers bucket S3.
+### Fonctionnement :
+
+- Opérateur avec authentification s3 configurée
+- Chart Helm `zap-automation-framework` installé dans le namespace de l'application à scanner
+- Auto-Discovery avec scans automatisés à chaque déploiement + upload vers bucket S3.
 
 Un scan va lancer 2 jobs :
 
 - Job scan : Permet de générer zap-results.xml sur le bucket S3
-- Job parse : Permet de générer findings.json sur le bucket S3
+- Job parse : Permet de générer findings.json sur le bucket S3 (format unifié et structuré de zap-results.xml)
 
-> _Note: Annotation sur le namespace demo `auto-discovery.securecodebox.io/enabled=true` nécessaire pour activer l'auto-discovery_
+### Auto-Discovery
 
-> [Doc Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/)
+Pré-requis :
+
+- Annotation sur le namespace demo `auto-discovery.securecodebox.io/enabled=true`
+- Service nommé http/https pour la détection automatique
+
+Values :
+
+- `repeatInterval` : À chaque déploiement (nouvelle révision de l'image), le scan est déclenché immédiatement et le compteur de 168h (7 jours) est réinitialisé. Si aucun déploiement n'a lieu pendant 168h, le scan est déclenché automatiquement à l'expiration du délai.
+- `env` : Supporte le templating si besoin
+
+> _Nécessite un environnement dédié aux tests_
+
+> Documentation : [Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/) / [default values](https://github.com/secureCodeBox/secureCodeBox/blob/main/auto-discovery/kubernetes/README.md)
 
 ### Test d'un scan manuel
 
@@ -255,10 +267,8 @@ spec:
   volumes:
     - name: zap-config
       configMap:
-        name: zap-automation-framework-baseline-config
+        name: zap-automation-framework-baseline-config # auto-générée
 ```
-
-> _Mount de la configmap zap-automation-framework-baseline-config auto-générée_
 
 ### Payloads de test d’intrusion (injection, XSS, SSRF, etc.) tentés par ZAP
 
@@ -266,7 +276,7 @@ spec:
 
 ### Rapports uploadé vers bucket S3
 
-![DAST Reports](images/dast-report.png)
+![DAST Reports](images/dast-reports.png)
 
 ---
 
