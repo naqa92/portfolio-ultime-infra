@@ -108,16 +108,15 @@ module "securecodebox_pod_identity" {
 
   policy_statements = [
     {
-      sid    = "AllowPutObjectsToReportsPrefix"
+      sid    = "AllowPutObjectsToBucket"
       effect = "Allow"
       actions = [
         "s3:PutObject",
         "s3:PutObjectAcl",
         "s3:PutObjectTagging"
       ]
-      # cible les objets sous le préfixe reports/
       resources = [
-        "arn:aws:s3:::portfolio-ultime-securecodebox/reports/*"
+        "arn:aws:s3:::portfolio-ultime-securecodebox/*"
       ]
     },
     {
@@ -126,20 +125,23 @@ module "securecodebox_pod_identity" {
       actions = [
         "s3:ListBucket"
       ]
-      # permission ListBucket s'applique au bucket lui-même
       resources = [
-        "arn:aws:s3:::portfolio-ultime-securecodebox"
+        "arn:aws:s3:::portfolio-ultime-securecodebox/*"
+      ]
+    },
+    {
+      sid    = "AllowGetObjectsFromBucket"
+      effect = "Allow"
+      actions = [
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:HeadObject"
+      ]
+      resources = [
+        "arn:aws:s3:::portfolio-ultime-securecodebox/*"
       ]
     }
   ]
-
-  associations = {
-    reports_uploader = {
-      cluster_name    = module.eks.cluster_name
-      namespace       = "securecodebox-system"
-      service_account = "securecodebox"
-    }
-  }
 
   tags = var.tags
 }

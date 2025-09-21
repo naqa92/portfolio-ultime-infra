@@ -15,6 +15,8 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
+  service_ipv4_cidr = "10.100.0.0/16"
+
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
@@ -23,14 +25,14 @@ module "eks" {
   addons = {
     eks-pod-identity-agent = { before_compute = true }
     vpc-cni                = { before_compute = true }
-    aws-ebs-csi-driver     = {
+    aws-ebs-csi-driver = {
       pod_identity_association = [{
         role_arn        = module.ebs_csi_pod_identity.iam_role_arn
         service_account = "ebs-csi-controller-sa"
       }]
     }
-    coredns                = {}
-    kube-proxy             = {}
+    coredns    = {}
+    kube-proxy = {}
   }
 
   eks_managed_node_groups = {

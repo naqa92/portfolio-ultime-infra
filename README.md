@@ -72,9 +72,13 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
 ## Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)
 
 - VPC (10.0.0.0/16) avec support DNS : Emplacement logique pour créer les réseaux
-- Subnets multi-AZ (eu-west-3a et 3b) :
-  - 2 privés : 10.0.0.0/19, 10.0.32.0/19
-  - 2 publics : 10.0.64.0/19, 10.0.96.0/19
+  ├── Subnets privés: 10.0.0.0/19, 10.0.32.0/19
+  ├── Subnets publics: 10.0.64.0/19, 10.0.96.0/19
+  └── Pods: gérés par VPC CNI dans les subnets
+
+> _Subnets multi-AZ (eu-west-3a et 3b)_
+
+- Services K8S: 10.100.0.0/16
 - NAT Gateway et Internet Gateway (création automatique via enable_nat_gateway)
   - NAT : Permet aux instances dans les réseaux privés d'accéder au réseau public
   - Internet : Permet au réseau public d'accéder à Internet
@@ -96,6 +100,13 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
   - aws-ebs-csi-driver
 
 ![Add-ons](images/addons.png)
+
+### Voir les schémas pour addons
+
+```bash
+aws eks describe-addon-versions --addon-name kube-proxy
+aws eks describe-addon-configuration --addon-name kube-proxy --addon-version v1.33.3-eksbuild.6
+```
 
 ## EKS Pod Identity (module terraform-aws-eks-pod-identity)
 
@@ -207,7 +218,55 @@ Dashboard utilisé : Headlamp (via plugin)
 Outil d'analyse de sécurité automatisée (DAST) :
 
 - Définition : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
-- Fonctionnement : AutoDiscovery + ScheduledScan pour des scans automatiques avec upload vers bucket S3.
+- Fonctionnement :
+  - Opérateur avec authentification s3 configurée
+  - Chart Helm `zap-automation-framework` installé dans le namespace de l'application à scanner (ns:demo, app:todolist)
+  - Auto-Discovery avec scans automatisés (ScheduledScan) + upload vers bucket S3.
+
+Un scan va lancer 2 jobs :
+
+- Job scan : Permet de générer zap-results.xml sur le bucket S3
+- Job parse : Permet de générer findings.json sur le bucket S3
+
+> _Note: Annotation sur le namespace demo `auto-discovery.securecodebox.io/enabled=true` nécessaire pour activer l'auto-discovery_
+
+> [Doc Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/)
+
+### Test d'un scan manuel
+
+```yaml
+apiVersion: execution.securecodebox.io/v1
+kind: Scan
+metadata:
+  name: zap-manual-test
+  namespace: demo
+spec:
+  scanType: "zap-automation-framework"
+  env:
+    - name: TARGET_URL
+      value: "http://todolist.demo.svc.cluster.local:5000"
+  parameters:
+    - "-autorun"
+    - "/home/securecodebox/scb-automation/automation.yaml"
+  volumeMounts:
+    - name: zap-config
+      mountPath: /home/securecodebox/scb-automation/automation.yaml
+      subPath: automation.yaml
+  volumes:
+    - name: zap-config
+      configMap:
+        name: zap-automation-framework-baseline-config
+```
+
+> _Mount de la configmap zap-automation-framework-baseline-config auto-générée_
+
+### Payloads de test d’intrusion (injection, XSS, SSRF, etc.) tentés par ZAP
+
+![DAST](images/dast.png)
+
+### Rapports uploadé vers bucket S3
+
+![DAST Reports](images/dast-report.png)
 
 ---
 

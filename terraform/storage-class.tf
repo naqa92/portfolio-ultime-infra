@@ -13,15 +13,15 @@ resource "kubernetes_storage_class" "gp3_default" {
 
   storage_provisioner    = "ebs.csi.aws.com"
   volume_binding_mode    = "WaitForFirstConsumer"
-  allow_volume_expansion = true
-  reclaim_policy        = "Delete"
+  allow_volume_expansion = false # Permet d'avoir le contrôle sur la taille des volumes
+  reclaim_policy         = "Delete"
 
   parameters = {
     type       = "gp3"
     fsType     = "ext4"
     encrypted  = "true"
-    iops       = "3000"    # IOPS de base pour gp3 (jusqu'à 16000 max)
-    throughput = "125"     # MB/s de base pour gp3 (jusqu'à 1000 max)
+    iops       = "3000" # IOPS de base pour gp3 (jusqu'à 16000 max)
+    throughput = "125"  # MB/s de base pour gp3 (jusqu'à 1000 max)
   }
 
   depends_on = [

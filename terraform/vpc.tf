@@ -88,6 +88,16 @@ module "node_sg" {
     }
   ]
 
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      description = "Pod to pod communication"
+      cidr_blocks = var.vpc_cidr
+    }
+  ]
+
   egress_with_cidr_blocks = [
     {
       from_port   = 0
