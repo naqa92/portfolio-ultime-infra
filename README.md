@@ -217,6 +217,14 @@ Outil open-source de sécurité et de conformité pour Kubernetes qui analyse le
 
 Dashboard utilisé : Headlamp (via plugin)
 
+## Headlamp
+
+Headlamp est une interface graphique moderne pour Kubernetes, facilitant la gestion et la visualisation des ressources du cluster. Dans ce projet, Headlamp est enrichi avec le plugin Kubescape, permettant d'intégrer directement les résultats d'analyse de sécurité et de conformité dans le dashboard. Grâce à ce plugin, il est possible de visualiser les rapports de scans Kubescape, d'identifier rapidement les vulnérabilités et de suivre l'état de conformité du cluster depuis une seule interface centralisée.
+
+Token d'accès nécessaire : `kubectl create token headlamp --namespace kube-system`
+
+> [Doc in-cluster](https://headlamp.dev/docs/latest/installation/in-cluster/)\_
+
 ## secureCodeBox (DAST)
 
 Outil d'analyse de sécurité automatisée (DAST) : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
@@ -312,6 +320,7 @@ spec:
   - Déploiements :
     - Argo Rollouts
     - Observabilité (avec Metrics server)
+    - Headlamp (UI pour Kubescape) : [Intégration avec Cognito](https://headlamp.dev/docs/latest/installation/in-cluster/eks/) (équivalent de Keycloak)
     - Securecodebox (DAST) :
       - Hooks pour extraire les résultats (findings) et les envoyer vers des systèmes externes (DefectDojo, Slack, Email, Dashboards grafana, Lambda, jobs CI...)
       - Scanning actif avec envs éphémères
