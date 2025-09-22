@@ -143,5 +143,13 @@ module "securecodebox_pod_identity" {
     }
   ]
 
+  associations = {
+    securecodebox = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "securecodebox-system"
+      service_account = "securecodebox-operator"
+    }
+  }
+
   tags = var.tags
 }

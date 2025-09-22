@@ -146,6 +146,10 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 
 # Bootstrap ArgoCD
 
+- Repo git de configuration dédié : `portfolio-ultime-config`
+- Multi-sources utilisés dans les apps ArgoCD afin de référencer des values locales pour une chart helm distante
+  > _Il faut éviter d'utiliser multi-sources pour d'autres cas de figure_
+
 ## Déploiement
 
 - Installation d'ArgoCD via chart Helm
@@ -259,7 +263,7 @@ spec:
       value: "http://todolist.demo.svc.cluster.local:5000"
   parameters:
     - "-autorun"
-    - "/home/securecodebox/scb-automation/automation.yaml"
+    - "/home/securecodebox/scb-automation/automation.yaml" # MountPath de la ConfigMap auto-générée (valeur par défaut)
   volumeMounts:
     - name: zap-config
       mountPath: /home/securecodebox/scb-automation/automation.yaml
@@ -267,16 +271,16 @@ spec:
   volumes:
     - name: zap-config
       configMap:
-        name: zap-automation-framework-baseline-config # auto-générée
+        name: zap-automation-framework-baseline-config # ConfigMap auto-générée
 ```
-
-### Payloads de test d’intrusion (injection, XSS, SSRF, etc.) tentés par ZAP
-
-![DAST](images/dast.png)
 
 ### Rapports uploadé vers bucket S3
 
-![DAST Reports](images/dast-reports.png)
+![DAST S3](images/dast-s3.png)
+
+### Résultat d'un rapport (Scanning DAST passif)
+
+![DAST Report](images/dast-report.png)
 
 ---
 
@@ -299,15 +303,18 @@ spec:
 
   - Destroy : Gérer load balancer, route53 et ACM
   - Passer d'ALB Controller à Gateway Controller
+  - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
 
 - ArgoCD :
 
-  - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
   - Rendered manifests pattern
-  - Réorganisation du repo `portfolio-ultime-config` : structure, targetRevisions et référence des values
+  - Réorganisation du repo `portfolio-ultime-config` : structure et targetRevisions
   - Déploiements :
     - Argo Rollouts
     - Observabilité (avec Metrics server)
+    - Securecodebox (DAST) :
+      - Hooks pour extraire les résultats (findings) et les envoyer vers des systèmes externes (DefectDojo, Slack, Email, Dashboards grafana, Lambda, jobs CI...)
+      - Scanning actif avec envs éphémères
 
 - EKS Production ready :
 

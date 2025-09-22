@@ -1,0 +1,19 @@
+{{- $root := . }}
+{{ if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $root.Release.Name }}
+spec:
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    protocol: TCP
+    targetPort: {{ .Values.service.targetPort }}
+  selector:
+    app.kubernetes.io/name: {{ $root.Release.Name }}
+  type: {{ .Values.service.type }}
+{{ end }}
