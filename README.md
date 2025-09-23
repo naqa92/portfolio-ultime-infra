@@ -223,7 +223,11 @@ Headlamp est une interface graphique moderne pour Kubernetes, facilitant la gest
 
 Token d'accès nécessaire : `kubectl create token headlamp --namespace kube-system`
 
-> [Doc in-cluster](https://headlamp.dev/docs/latest/installation/in-cluster/)\_
+Compliance du framework cis-eks-t1.2.0 :
+
+![Headlamp - Framework cis-eks-t1.2.0](images/headlamp.png)
+
+> [Doc in-cluster](https://headlamp.dev/docs/latest/installation/in-cluster/)
 
 ## secureCodeBox (DAST)
 
@@ -319,6 +323,7 @@ spec:
   - Réorganisation du repo `portfolio-ultime-config` : structure et targetRevisions
   - Déploiements :
     - Argo Rollouts
+    - Argo Image Updater
     - Observabilité (avec Metrics server)
     - Headlamp (UI pour Kubescape) : [Intégration avec Cognito](https://headlamp.dev/docs/latest/installation/in-cluster/eks/) (équivalent de Keycloak)
     - Securecodebox (DAST) :
