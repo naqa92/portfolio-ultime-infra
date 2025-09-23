@@ -222,6 +222,7 @@ Dashboard utilisé : Headlamp (via plugin)
 Headlamp est une interface graphique moderne pour Kubernetes, facilitant la gestion et la visualisation des ressources du cluster. Dans ce projet, Headlamp est enrichi avec le plugin Kubescape, permettant d'intégrer directement les résultats d'analyse de sécurité et de conformité dans le dashboard. Grâce à ce plugin, il est possible de visualiser les rapports de scans Kubescape, d'identifier rapidement les vulnérabilités et de suivre l'état de conformité du cluster depuis une seule interface centralisée.
 
 Token d'accès nécessaire : `kubectl create token headlamp --namespace kube-system`
+Accès local : `kubectl port-forward -n kube-system service/headlamp 8080:80`
 
 Compliance du framework cis-eks-t1.2.0 :
 
@@ -237,7 +238,7 @@ Outil d'analyse de sécurité automatisée (DAST) : secureCodeBox est un projet 
 
 - Opérateur avec authentification s3 configurée
 - Chart Helm `zap-automation-framework` installé dans le namespace de l'application à scanner
-- Auto-Discovery avec scans automatisés à chaque déploiement + upload vers bucket S3.
+- Auto-Discovery avec scans automatisés + upload vers bucket S3.
 
 Un scan va lancer 2 jobs :
 
@@ -253,10 +254,10 @@ Pré-requis :
 
 Values :
 
-- `repeatInterval` : À chaque déploiement (nouvelle révision de l'image), le scan est déclenché immédiatement et le compteur de 168h (7 jours) est réinitialisé. Si aucun déploiement n'a lieu pendant 168h, le scan est déclenché automatiquement à l'expiration du délai.
+- `repeatInterval` : Le scan est déclenché immédiatement et le compteur de 168h (7 jours) est réinitialisé. Si aucun déploiement n'a lieu pendant 168h, le scan est déclenché automatiquement à l'expiration du délai.
 - `env` : Supporte le templating si besoin
 
-> _Nécessite un environnement dédié aux tests_
+> _Nécessite un environnement dédié aux tests pour du scanning actif_
 
 > Documentation : [Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/) / [default values](https://github.com/secureCodeBox/secureCodeBox/blob/main/auto-discovery/kubernetes/README.md)
 
@@ -329,6 +330,7 @@ spec:
     - Securecodebox (DAST) :
       - Hooks pour extraire les résultats (findings) et les envoyer vers des systèmes externes (DefectDojo, Slack, Email, Dashboards grafana, Lambda, jobs CI...)
       - Scanning actif avec envs éphémères
+    - ESO : Utiliser ESO au lieu de créer les secrets via terraform
 
 - EKS Production ready :
 
