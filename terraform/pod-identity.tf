@@ -153,3 +153,23 @@ module "securecodebox_pod_identity" {
 
   tags = var.tags
 }
+
+module "external_secrets_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+
+  name = "external-secrets"
+
+  attach_external_secrets_policy        = true
+  external_secrets_secrets_manager_arns = ["arn:aws:secretsmanager:eu-west-3:*"] # Liste des ARNs contenant les secrets à monter via ESO
+  external_secrets_create_permission    = true # Permet à ESO de créer/supprimer des secrets dans Kubernetes
+
+  associations = {
+    eso = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "external-secrets"
+      service_account = "external-secrets"
+    }
+  }
+
+  tags = var.tags
+}

@@ -2,7 +2,7 @@
 
 Ce projet utilise GitHub Actions pour automatiser le déploiement d'une infrastructure via Terraform avec :
 
-- Cluster EKS complet via plusieurs modules
+- Cluster EKS complet avec plusieurs modules
 - ArgoCD avec boostrap d'applications
 
 ---
@@ -12,7 +12,9 @@ Ce projet utilise GitHub Actions pour automatiser le déploiement d'une infrastr
 - Terraform >= 1.12.0
 - AWS CLI configuré
 - Repo git dédié pour ArgoCD : `portfolio-ultime-config`
-- Bucket S3 backend : `portfolio-ultime-infra`
+- 2 Buckets S3 :
+
+portfolio-ultime-infra (backend dédié à terraform pour le state)
 
 ```bash
 aws s3api create-bucket \
@@ -21,19 +23,39 @@ aws s3api create-bucket \
   --create-bucket-configuration LocationConstraint=eu-west-3
 ```
 
-> _Pour supprimer le bucket S3 : `aws s3 rb s3://portfolio-ultime-infra --force`_
+portfolio-ultime-securecodebox (résultats des scans DAST)
 
-- Définir les secrets du repo
+```bash
+aws s3api create-bucket \
+  --bucket portfolio-ultime-securecodebox \
+  --region eu-west-3 \
+  --create-bucket-configuration LocationConstraint=eu-west-3
+```
+
+- Secret AWS pour autoriser à lire les packages ghcr.io
+
+```bash
+aws secretsmanager create-secret \
+  --name "ghcr-token" \
+  --description "Token Github avec permissions read packages" \
+  --secret-string "GITHUB_TOKEN"
+```
+
+> _Pour supprimer un bucket S3 : `aws s3 rb s3://BUCKET_NAME --force`_
+
+> _Pour supprimer un secret AWS : `aws secretsmanager delete-secret --secret-id SECRET_NAME --force-delete-without-recovery --region eu-west-3`_
+
+- Secrets d'environnement GitHub :
 
 | Secret                  | Description     |
 | ----------------------- | --------------- |
 | `AWS_ACCESS_KEY_ID`     | Clé d'accès AWS |
 | `AWS_SECRET_ACCESS_KEY` | Clé secrète AWS |
 
-Terraform
-
-- `allowed_ips` : Adresse IP personnelle en /32
-- `external_dns_hosted_zone_arns` : Hosted Zone ID (Route53)
+- Terraform :
+  - `allowed_ips` : Adresse IP personnelle en /32 (0.0.0.0/0 par défaut)
+  - `external_dns_hosted_zone_arns` : Hosted Zone ID (Route53)
+  - `external_secrets_secrets_manager_arns` : ARN du secret "ghcr-token" (Secret Manager)
 
 ---
 
@@ -44,12 +66,13 @@ portfolio-ultime-infra/
 ├── .github/workflows/
 │   └── terraform.yml           # Pipeline CI/CD
 ├── terraform/
-│   ├── eks.tf                  # Configuration EKS
-│   ├── helm-charts.tf          # Charts Helm
-│   ├── pod-identity.tf         # Pod Identity
-│   ├── providers.tf            # Providers Terraform
+│   ├── eks.tf                  # Cluster EKS
+│   ├── helm-charts.tf          # Charts Helm pour boostrap d'ArgoCD
+│   ├── pod-identity.tf         # Pod Identity pour gestion des policies
+│   ├── providers.tf            # Providers et configuration backend
+│   ├── storage-class.tf        # StorageClass gp3
 │   ├── variables.tf            # Variables
-│   ├── vpc.tf                  # Configuration VPC
+│   ├── vpc.tf                  # Configuration VPC + security groups
 └── README.md
 ```
 
@@ -71,12 +94,12 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
 
 ## Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)
 
-- VPC (10.0.0.0/16) avec support DNS : Emplacement logique pour créer les réseaux
-  ├── Subnets privés: 10.0.0.0/19, 10.0.32.0/19
-  ├── Subnets publics: 10.0.64.0/19, 10.0.96.0/19
-  └── Pods: gérés par VPC CNI dans les subnets
-
-> _Subnets multi-AZ (eu-west-3a et 3b)_
+```bash
+VPC (10.0.0.0/16) avec support DNS
+├── Subnets privés: 10.0.0.0/19, 10.0.32.0/19 # multi-AZ (eu-west-3a et 3b)
+├── Subnets publics: 10.0.64.0/19, 10.0.96.0/19 # multi-AZ (eu-west-3a et 3b)
+└── Pods: gérés par VPC CNI dans les subnets
+```
 
 - Services K8S: 10.100.0.0/16
 - NAT Gateway et Internet Gateway (création automatique via enable_nat_gateway)
@@ -110,9 +133,9 @@ aws eks describe-addon-configuration --addon-name kube-proxy --addon-version v1.
 
 ## EKS Pod Identity (module terraform-aws-eks-pod-identity)
 
-Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer l'OIDC / trust policy)
+Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer OIDC / trust policy)
 
-> _Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation via EKS Pod Identity._
+> _Le ServiceAccount sera la cible de l’association IAM via le module pod-identity — pas besoin d’annotation lorsqu'on utilise EKS Pod Identity._
 
 > _Note: L'association Pod Identity peut être créée AVANT le ServiceAccount, ce qui facilite l'automatisation. voir [doc](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)_
 
@@ -121,6 +144,8 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 - External DNS
 - Cert Manager
 - Cert Manager Sync
+- SecureCodeBox
+- External Secret
 
 ![Pod Identity](images/pod-identity.png)
 
@@ -148,6 +173,7 @@ Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI →
 
 - Repo git de configuration dédié : `portfolio-ultime-config`
 - Multi-sources utilisés dans les apps ArgoCD afin de référencer des values locales pour une chart helm distante
+
   > _Il faut éviter d'utiliser multi-sources pour d'autres cas de figure_
 
 ## Déploiement
@@ -259,7 +285,7 @@ Values :
 
 > _Nécessite un environnement dédié aux tests pour du scanning actif_
 
-> Documentation : [Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/) / [default values](https://github.com/secureCodeBox/secureCodeBox/blob/main/auto-discovery/kubernetes/README.md)
+> _Documentation : [Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/) / [default values](https://github.com/secureCodeBox/secureCodeBox/blob/main/auto-discovery/kubernetes/README.md)_
 
 ### Test d'un scan manuel
 
@@ -294,6 +320,23 @@ spec:
 ### Résultat d'un rapport (Scanning DAST passif)
 
 ![DAST Report](images/dast-report.png)
+
+## External Secret Operator (ESO)
+
+ESO permet de garder les secrets en dehors de git. L'opérateur surveille en continu les secrets afin de les synchroniser sur Kubernetes.
+
+Fonctionnement :
+
+- Récupère les secrets depuis un store (ex: AWS Secret Manager)
+- Les convertit en secrets Kubernetes standard
+
+![ESO](images/eso.png)
+
+Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récupérer les packages ghcr.io (Helm + Image Docker)
+
+![External Secrets](images/externalsecrets.png)
+
+> _Note: Statut OutOfSync dans ArgoCD dû au paramètre refreshInterval, mais les secrets sont bien présents et fonctionnels_
 
 ---
 
@@ -330,7 +373,6 @@ spec:
     - Securecodebox (DAST) :
       - Hooks pour extraire les résultats (findings) et les envoyer vers des systèmes externes (DefectDojo, Slack, Email, Dashboards grafana, Lambda, jobs CI...)
       - Scanning actif avec envs éphémères
-    - ESO : Utiliser ESO au lieu de créer les secrets via terraform
 
 - EKS Production ready :
 
