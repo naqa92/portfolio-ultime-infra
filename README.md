@@ -17,7 +17,7 @@
     - [ArgoCD - Déploiement](#argocd---déploiement)
     - [AWS Load Balancer Controller](#aws-load-balancer-controller)
       - [Architecture de flux](#architecture-de-flux)
-      - [AWS Load Balancer Controller - Values helm](#aws-load-balancer-controller---values-helm)
+      - [Values helm](#values-helm)
     - [External DNS](#external-dns)
     - [Cert Manager](#cert-manager)
       - [Cert Manager Sync](#cert-manager-sync)
@@ -206,9 +206,40 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 #### Architecture de flux
 
-Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI → Pods
+```mermaid
+flowchart TD
+  A[Client (Internet)] --> B[Internet Gateway (IGW)]
+  B --> C[ALB (Layer 7)]
+  C --> D[Target Group (Pod IPs)]
+  D --> E[VPC Routing + Node ENI]
+  E --> F[Pod (dans le VPC)]
+```
 
-#### AWS Load Balancer Controller - Values helm
+1. **Internet → ALB (Layer 7)**
+
+- Un client externe envoie une requête HTTP/HTTPS.
+- Le trafic entre par l’Internet Gateway (IGW), éventuellement via Route 53/DNS vers l’ALB.
+- L’ALB termine la connexion TLS (si configurée) et effectue le routage applicatif.
+
+2. **ALB → Target Groups (Pod IPs)**
+
+- L’ALB cible directement les IPs des Pods enregistrées dans un Target Group (grâce au VPC CNI).
+- Chaque Pod possède une IP VPC native, permettant un routage direct comme pour des instances EC2.
+
+3. **Target Group → VPC / Node ENI**
+
+- L’ALB envoie le trafic vers l’IP du Pod sélectionné.
+- Le paquet traverse le réseau interne du VPC.
+- Si le Pod est sur un Node, l’ENI du Node est utilisée pour délivrer le paquet.
+
+4. **Node ENI → Pod**
+
+- Le Node connaît le mapping entre l’IP du Pod et son espace réseau interne via l’ENI assignée.
+- Le trafic est remis directement au Pod, sans passer par kube-proxy (routage L3 direct).
+
+**Résultat :** latence faible, performance quasi native.
+
+#### Values helm
 
 - `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
 - `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
