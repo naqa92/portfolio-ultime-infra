@@ -18,7 +18,7 @@ on:
           - apply
           - destroy
 
-permissions: # Pour le GITHUB_TOKEN par défaut
+permissions: # Pour le GITHUB_TOKEN (par défaut)
   contents: read # Checkout du code
 
 env:
