@@ -1,4 +1,39 @@
-# Cluster EKS avec Terraform
+# Portfolio Ultime - Cluster EKS avec Terraform
+
+## Table des matières
+
+- [Portfolio Ultime - Cluster EKS avec Terraform](#portfolio-ultime---cluster-eks-avec-terraform)
+  - [Table des matières](#table-des-matières)
+  - [Pré-requis](#pré-requis)
+  - [Structure du projet](#structure-du-projet)
+  - [Cluster EKS complet](#cluster-eks-complet)
+    - [Kubeconfig](#kubeconfig)
+    - [Backend S3](#backend-s3)
+    - [Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)](#infrastructure-réseau-modules-terraform-aws-vpc-et-terraform-aws-security-group)
+    - [Cluster EKS (module terraform-aws-eks)](#cluster-eks-module-terraform-aws-eks)
+      - [Voir les schémas pour addons](#voir-les-schémas-pour-addons)
+    - [EKS Pod Identity (module terraform-aws-eks-pod-identity)](#eks-pod-identity-module-terraform-aws-eks-pod-identity)
+  - [Bootstrap ArgoCD](#bootstrap-argocd)
+    - [ArgoCD - Déploiement](#argocd---déploiement)
+    - [AWS Load Balancer Controller](#aws-load-balancer-controller)
+      - [Architecture de flux](#architecture-de-flux)
+      - [AWS Load Balancer Controller - Values helm](#aws-load-balancer-controller---values-helm)
+    - [External DNS](#external-dns)
+    - [Cert Manager](#cert-manager)
+      - [Cert Manager Sync](#cert-manager-sync)
+    - [CNPG (PostgreSQL)](#cnpg-postgresql)
+    - [KubeScape (Test sécurité)](#kubescape-test-sécurité)
+    - [Headlamp](#headlamp)
+    - [secureCodeBox (DAST)](#securecodebox-dast)
+      - [Fonctionnement :](#fonctionnement-)
+      - [Auto-Discovery](#auto-discovery)
+      - [Test d'un scan manuel](#test-dun-scan-manuel)
+      - [Rapports uploadé vers bucket S3](#rapports-uploadé-vers-bucket-s3)
+      - [Résultat d'un rapport (Scanning DAST passif)](#résultat-dun-rapport-scanning-dast-passif)
+    - [External Secret Operator (ESO)](#external-secret-operator-eso)
+  - [Pipeline dédiée à Terraform](#pipeline-dédiée-à-terraform)
+  - [Licence](#licence)
+  - [TODO](#todo)
 
 Ce projet utilise GitHub Actions pour automatiser le déploiement d'une infrastructure via Terraform avec :
 
@@ -344,8 +379,6 @@ Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récup
 
 ## Pipeline dédiée à Terraform
 
-### Fonctionnement du Workflow Dispatch
-
 | Action                          | Format check | Init | Validate | Plan | Apply | Destroy |
 | ------------------------------- | :----------: | :--: | :------: | :--: | :---: | :-----: |
 | **Push**                        |      ✅      |  ✅  |    ✅    |  ✅  |  ✅   |   ❌    |
@@ -355,7 +388,13 @@ Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récup
 
 ---
 
-### TODO
+## Licence
+
+Ce projet est sous licence MIT
+
+---
+
+## TODO
 
 - Terraform :
 
