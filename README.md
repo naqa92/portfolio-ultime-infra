@@ -208,11 +208,11 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 ```mermaid
 flowchart TD
-  A[Client (Internet)] --> B[Internet Gateway (IGW)]
-  B --> C[ALB (Layer 7)]
-  C --> D[Target Group (Pod IPs)]
-  D --> E[VPC Routing + Node ENI]
-  E --> F[Pod (dans le VPC)]
+    A[Client Internet] --> B[Internet Gateway]
+    B --> C[ALB (Layer 7)]
+    C --> D[Target Group (Pod IPs)]
+    D --> E[VPC Routing & Node ENI]
+    E --> F[Pod dans VPC]
 ```
 
 1. **Internet → ALB (Layer 7)**
