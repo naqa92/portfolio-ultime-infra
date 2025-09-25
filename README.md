@@ -206,14 +206,7 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 #### Architecture de flux
 
-```mermaid
-graph LR
-  A[Client (Internet)] --> B[Internet Gateway (IGW)]
-  B --> C[ALB (L7)]
-  C --> D[Target Group (Pod IPs)]
-  D --> E[VPC Routing + Node ENI]
-  E --> F[Pod (dans le VPC)]
-```
+`Client (Internet) → Internet Gateway (IGW) → ALB (L7) → Target Group (Pod IPs) → VPC Routing + Node ENI → Pod (dans le VPC)`
 
 1. **Internet → ALB (Layer 7)**
 
