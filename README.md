@@ -7,14 +7,14 @@ Ce projet utilise GitHub Actions pour automatiser le déploiement d'une infrastr
 
 ---
 
-# Pré-requis
+## Pré-requis
 
 - Terraform >= 1.12.0
 - AWS CLI configuré
 - Repo git dédié pour ArgoCD : `portfolio-ultime-config`
 - 2 Buckets S3 :
 
-portfolio-ultime-infra (backend dédié à terraform pour le state)
+`portfolio-ultime-infra` (backend dédié à terraform pour le state)
 
 ```bash
 aws s3api create-bucket \
@@ -23,7 +23,7 @@ aws s3api create-bucket \
   --create-bucket-configuration LocationConstraint=eu-west-3
 ```
 
-portfolio-ultime-securecodebox (résultats des scans DAST)
+`portfolio-ultime-securecodebox` (résultats des scans DAST)
 
 ```bash
 aws s3api create-bucket \
@@ -59,12 +59,12 @@ aws secretsmanager create-secret \
 
 ---
 
-# 📁 Structure du projet
+## Structure du projet
 
 ```
 portfolio-ultime-infra/
 ├── .github/workflows/
-│   └── terraform.yml           # Pipeline CI/CD
+│   └── infra.yaml              # Pipeline CI/CD
 ├── terraform/
 │   ├── eks.tf                  # Cluster EKS
 │   ├── helm-charts.tf          # Charts Helm pour boostrap d'ArgoCD
@@ -78,21 +78,21 @@ portfolio-ultime-infra/
 
 ---
 
-# Cluster EKS complet
+## Cluster EKS complet
 
-## Kubeconfig
+### Kubeconfig
 
 ```bash
 aws eks --region eu-west-3 update-kubeconfig --name eks-cluster
 ```
 
-## Backend S3
+### Backend S3
 
 Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de DynamoDB pour le verrouillage)
 
 ![s3](images/s3.png)
 
-## Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)
+### Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)
 
 ```bash
 VPC (10.0.0.0/16) avec support DNS
@@ -108,11 +108,11 @@ VPC (10.0.0.0/16) avec support DNS
 - Tables de routage
   - Pour les subnets publics : Une route vers l'Internet Gateway est automatiquement ajoutée.
   - Pour les subnets privés : Une route vers le NAT Gateway est automatiquement ajoutée.
-- 3 Groupes de sécurité : cluster, nodes et load balancer
+- 4 Groupes de sécurité : cluster, nodes et load balancer
 
 ![Networking](images/networking.png)
 
-## Cluster EKS (module terraform-aws-eks)
+### Cluster EKS (module terraform-aws-eks)
 
 - Version : 1.33
 - Add-ons managés :
@@ -124,14 +124,14 @@ VPC (10.0.0.0/16) avec support DNS
 
 ![Add-ons](images/addons.png)
 
-### Voir les schémas pour addons
+#### Voir les schémas pour addons
 
 ```bash
 aws eks describe-addon-versions --addon-name kube-proxy
 aws eks describe-addon-configuration --addon-name kube-proxy --addon-version v1.33.3-eksbuild.6
 ```
 
-## EKS Pod Identity (module terraform-aws-eks-pod-identity)
+### EKS Pod Identity (module terraform-aws-eks-pod-identity)
 
 Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer OIDC / trust policy)
 
@@ -151,39 +151,39 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 > _Pour EBS CSI Driver, c'est géré directement dans la partie addons du module EKS_
 
-## Composants additionnels
+---
 
-- AWS Load Balancer Controller (via Helm)
-
-![ALB](images/alb.png)
-
-### AWS Load Balancer Controller - Architecture de flux
-
-Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI → Pods
-
-### AWS Load Balancer Controller - Values helm
-
-- `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
-- `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
-- `vpcTags` : Nom du cluster pour récupérer vpcID automatiquement
-
-> _à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes_
-
-# Bootstrap ArgoCD
+## Bootstrap ArgoCD
 
 - Repo git de configuration dédié : `portfolio-ultime-config`
 - Multi-sources utilisés dans les apps ArgoCD afin de référencer des values locales pour une chart helm distante
 
   > _Il faut éviter d'utiliser multi-sources pour d'autres cas de figure_
 
-## Déploiement
+### ArgoCD - Déploiement
 
 - Installation d'ArgoCD via chart Helm
 - Déploiement des applications ArgoCD via la stratégie App-of-apps
 
 ![ArgoCD UI](images/argocd.png)
 
-## External DNS
+### AWS Load Balancer Controller
+
+#### Architecture de flux
+
+Internet → ALB (L7) → Target groups (pod IPs) → Réseau VPC / Node ENI → Pods
+
+#### AWS Load Balancer Controller - Values helm
+
+- `defaultTargetType = "ip"` : Instance par défaut. Avec IP, Le trafic est directement routé vers les adresses IP des pods. La valeur IP est recommandée pour une meilleure intégration et performance avec la CNI Amazon VPC.
+- `deregistration_delay = 120s` : Valeur fixe pour synchroniser la durée avec `terminationGracePeriodSeconds` du pod pour éviter les coupures de sessions pendant les déploiements
+- `vpcTags` : Nom du cluster pour récupérer vpcID automatiquement
+
+![ALB](images/alb.png)
+
+> _à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes_
+
+### External DNS
 
 Gestion automatique des enregistrements DNS Route 53
 
@@ -195,7 +195,7 @@ external-dns.alpha.kubernetes.io/hostname: app.ndebaa.com
 
 ![Route53](images/route53.png)
 
-## Cert Manager
+### Cert Manager
 
 Solver DNS-01 avec Route53 utilisé pour une meilleure intégration.
 
@@ -207,7 +207,11 @@ Avantages par rapport au solver HTTP-01 :
 - ✅ Wildcards supportés si besoin
 - ✅ Production-ready : Solution standard pour les clusters privés
 
-### Cert Manager Sync
+Certificat cert-manager :
+
+![Certificat cert-manager](images/cert-manager.png)
+
+#### Cert Manager Sync
 
 - **Projet** : [cert-manager-sync](https://github.com/robertlestak/cert-manager-sync)
 - **Contexte** : ALB Controller n’utilise pas automatiquement les secrets TLS générés par cert-manager pour créer un listener HTTPS sur l’ALB car il attend un ARN ACM (annotation `alb.ingress.kubernetes.io/certificate-arn`)
@@ -225,30 +229,28 @@ cert-manager.io/secret-template: |
   {"annotations": {"cert-manager-sync.lestak.sh/sync-enabled":"true", "cert-manager-sync.lestak.sh/acm-enabled":"true", "cert-manager-sync.lestak.sh/acm-region": "eu-west-1"}}
 ```
 
-Certificat cert-manager :
-
-![Certificat cert-manager](images/cert-manager.png)
-
 Certificat ACM :
 
 ![Certificat ACM](images/acm.png)
 
-## CNPG (PostgreSQL)
+### CNPG (PostgreSQL)
 
 Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire et 1 secondaire)
 
-## KubeScape (Test sécurité)
+![CNPG](images/cnpg.png)
+
+### KubeScape (Test sécurité)
 
 Outil open-source de sécurité et de conformité pour Kubernetes qui analyse les configurations, détecte les vulnérabilités et applique les bonnes pratiques dans les clusters et les manifests.
 
 Dashboard utilisé : Headlamp (via plugin)
 
-## Headlamp
+### Headlamp
 
 Headlamp est une interface graphique moderne pour Kubernetes, facilitant la gestion et la visualisation des ressources du cluster. Dans ce projet, Headlamp est enrichi avec le plugin Kubescape, permettant d'intégrer directement les résultats d'analyse de sécurité et de conformité dans le dashboard. Grâce à ce plugin, il est possible de visualiser les rapports de scans Kubescape, d'identifier rapidement les vulnérabilités et de suivre l'état de conformité du cluster depuis une seule interface centralisée.
 
-Token d'accès nécessaire : `kubectl create token headlamp --namespace kube-system`
-Accès local : `kubectl port-forward -n kube-system service/headlamp 8080:80`
+- Token d'accès nécessaire : `kubectl create token headlamp --namespace kube-system`
+- Accès local : `kubectl port-forward -n kube-system service/headlamp 8080:80`
 
 Compliance du framework cis-eks-t1.2.0 :
 
@@ -256,11 +258,11 @@ Compliance du framework cis-eks-t1.2.0 :
 
 > [Doc in-cluster](https://headlamp.dev/docs/latest/installation/in-cluster/)
 
-## secureCodeBox (DAST)
+### secureCodeBox (DAST)
 
 Outil d'analyse de sécurité automatisée (DAST) : secureCodeBox est un projet OWASP qui propose une solution open source automatisée et évolutive, intégrant plusieurs scanners de sécurité via une interface simple et légère — pour des tests de sécurité continus et automatisés.
 
-### Fonctionnement :
+#### Fonctionnement :
 
 - Opérateur avec authentification s3 configurée
 - Chart Helm `zap-automation-framework` installé dans le namespace de l'application à scanner
@@ -271,7 +273,7 @@ Un scan va lancer 2 jobs :
 - Job scan : Permet de générer zap-results.xml sur le bucket S3
 - Job parse : Permet de générer findings.json sur le bucket S3 (format unifié et structuré de zap-results.xml)
 
-### Auto-Discovery
+#### Auto-Discovery
 
 Pré-requis :
 
@@ -287,7 +289,7 @@ Values :
 
 > _Documentation : [Auto-Discovery](https://www.securecodebox.io/docs/auto-discovery/service-auto-discovery/) / [default values](https://github.com/secureCodeBox/secureCodeBox/blob/main/auto-discovery/kubernetes/README.md)_
 
-### Test d'un scan manuel
+#### Test d'un scan manuel
 
 ```yaml
 apiVersion: execution.securecodebox.io/v1
@@ -313,15 +315,15 @@ spec:
         name: zap-automation-framework-baseline-config # ConfigMap auto-générée
 ```
 
-### Rapports uploadé vers bucket S3
+#### Rapports uploadé vers bucket S3
 
 ![DAST S3](images/dast-s3.png)
 
-### Résultat d'un rapport (Scanning DAST passif)
+#### Résultat d'un rapport (Scanning DAST passif)
 
 ![DAST Report](images/dast-report.png)
 
-## External Secret Operator (ESO)
+### External Secret Operator (ESO)
 
 ESO permet de garder les secrets en dehors de git. L'opérateur surveille en continu les secrets afin de les synchroniser sur Kubernetes.
 
@@ -340,9 +342,9 @@ Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récup
 
 ---
 
-# Pipeline dédiée à Terraform
+## Pipeline dédiée à Terraform
 
-## Fonctionnement du Workflow Dispatch
+### Fonctionnement du Workflow Dispatch
 
 | Action                          | Format check | Init | Validate | Plan | Apply | Destroy |
 | ------------------------------- | :----------: | :--: | :------: | :--: | :---: | :-----: |
@@ -353,11 +355,13 @@ Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récup
 
 ---
 
-## TODO
+### TODO
 
 - Terraform :
 
-  - Destroy : Gérer load balancer, route53 et ACM
+  - Destroy :
+    - Gérer load balancer, route53 et ACM
+    - Sécurité du dispatch destroy
   - Passer d'ALB Controller à Gateway Controller
   - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
 
