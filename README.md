@@ -12,6 +12,10 @@
     - [Infrastructure réseau (modules terraform-aws-vpc et terraform-aws-security-group)](#infrastructure-réseau-modules-terraform-aws-vpc-et-terraform-aws-security-group)
     - [Cluster EKS (module terraform-aws-eks)](#cluster-eks-module-terraform-aws-eks)
       - [Voir les schémas pour addons](#voir-les-schémas-pour-addons)
+    - [Storage Class](#storage-class)
+      - [Comparaison EBS vs EFS](#comparaison-ebs-vs-efs)
+      - [StorageClass EBS (gp3) - Défaut](#storageclass-ebs-gp3---défaut)
+      - [StorageClass EFS](#storageclass-efs)
     - [EKS Pod Identity (module terraform-aws-eks-pod-identity)](#eks-pod-identity-module-terraform-aws-eks-pod-identity)
   - [Bootstrap ArgoCD](#bootstrap-argocd)
     - [ArgoCD - Déploiement](#argocd---déploiement)
@@ -156,6 +160,7 @@ VPC (10.0.0.0/16) avec support DNS
   - vpc-cni
   - eks-pod-identity-agent
   - aws-ebs-csi-driver
+  - aws-efs-csi-driver
 
 ![Add-ons](images/addons.png)
 
@@ -166,6 +171,44 @@ aws eks describe-addon-versions --addon-name kube-proxy
 aws eks describe-addon-configuration --addon-name kube-proxy --addon-version v1.33.3-eksbuild.6
 ```
 
+### Storage Class
+
+2 StorageClass sont disponibles pour couvrir différents use cases :
+
+#### Comparaison EBS vs EFS
+
+| Critère            | **EBS (gp3)**                       | **EFS**                            |
+| ------------------ | ----------------------------------- | ---------------------------------- |
+| **Type**           | Block Storage                       | File System (NFS)                  |
+| **Mode d'accès**   | RWO (ReadWriteOnce)                 | RWX (ReadWriteMany)                |
+| **Disponibilité**  | Zonal (1 AZ)                        | Multi-AZ natif                     |
+| **Replicas**       | 1 seul                              | N pods simultanés                  |
+| **Performance**    | Très haute (latence basse)          | Bonne (latence réseau)             |
+| **Chiffrement**    | AWS-managed                         | AWS-managed                        |
+| **Backup**         | Via snapshots EBS                   | AWS Backup intégré                 |
+| **Coût**           | ~0.10 $/Gi/mois                     | ~0.30 $/Gi/mois (IA: 0.025 $/Gi)   |
+| **Use cases**      | DB, Cache, Apps stateful unireplica | HPA + persistance, partage données |
+| **Volume Binding** | WaitForFirstConsumer                | WaitForFirstConsumer               |
+
+> **Note coûts EFS** : Standard (~0.30 $/Gi) pour l'accès fréquent. Les données non accédées pendant 30 jours basculent automatiquement en Infrequent Access (~0.025 $/Gi/mois), réduisant les coûts de stockage long terme.
+
+#### StorageClass EBS (gp3) - Défaut
+
+- **IOPS** : 3000 (jusqu'à 16000)
+- **Throughput** : 125 MB/s (jusqu'à 1000)
+- **Encryption** : Activée
+- **Idéal pour** : PostgreSQL, Redis, applications haute perf
+
+#### StorageClass EFS
+
+- **Throughput Mode** : Elastic (auto-scaling)
+- **Encryption** : AWS-managed key
+- **Multi-AZ** : Mount targets dans toutes les AZ
+- **Access Points** : Isolation sécurisée (POSIX permissions)
+- **Idéal pour** : HPA avec persistance, données partagées, uploads
+
+> _Voir [STORAGE_GUIDE.md](terraform/STORAGE_GUIDE.md) pour des exemples d'utilisation détaillés_
+
 ### EKS Pod Identity (module terraform-aws-eks-pod-identity)
 
 Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux services AWS depuis un pod (remplacement moderne de IRSA, plus besoin de gérer OIDC / trust policy)
@@ -174,7 +217,7 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 > _Note: L'association Pod Identity peut être créée AVANT le ServiceAccount, ce qui facilite l'automatisation. voir [doc](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)_
 
-- AWS EBS CSI Driver (sans KMS car optionnel)
+- AWS EBS/EFS CSI Driver
 - AWS Load Balancer Controller
 - External DNS
 - Cert Manager
@@ -184,7 +227,7 @@ Fonctionnement : Mapping IAM ↔️ Pod via un agent natif pour l'accès aux ser
 
 ![Pod Identity](images/pod-identity.png)
 
-> _Pour EBS CSI Driver, c'est géré directement dans la partie addons du module EKS_
+> _Pour EBS/EFS CSI Driver, c'est géré directement dans la partie addons du module EKS_
 
 ---
 
@@ -420,6 +463,8 @@ Ce projet est sous licence MIT
 
 ## TODO
 
+- Tester Schema Atlas + EFS + update readme
+
 - Terraform :
 
   - Destroy :
@@ -430,8 +475,8 @@ Ce projet est sous licence MIT
 
 - ArgoCD :
 
-  - Rendered manifests pattern
-  - Réorganisation du repo `portfolio-ultime-config` : structure et targetRevisions
+  - Rendered manifests pattern : [argocd-diff-preview](https://github.com/dag-andersen/argocd-diff-preview)
+  - Réorganisation du repo `portfolio-ultime-config` : structure
   - Déploiements :
     - Argo Rollouts
     - Argo Image Updater
@@ -439,7 +484,7 @@ Ce projet est sous licence MIT
     - Headlamp (UI pour Kubescape) : [Intégration avec Cognito](https://headlamp.dev/docs/latest/installation/in-cluster/eks/) (équivalent de Keycloak)
     - Securecodebox (DAST) :
       - Hooks pour extraire les résultats (findings) et les envoyer vers des systèmes externes (DefectDojo, Slack, Email, Dashboards grafana, Lambda, jobs CI...)
-      - Scanning actif avec envs éphémères
+      - Scanning actif avec envs éphémères : PR Generator (+Vcluster?)
 
 - EKS Production ready :
 
@@ -447,11 +492,11 @@ Ce projet est sous licence MIT
   - Au moins 3 AZ
   - Access Entries : Mapping IAM ↔️ utilisateurs Kubernetes automatisé pour gérer plus finement les permissions d'accès au cluster (remplacement moderne de aws-auth)
     - _actuellement `enable_cluster_creator_admin_permissions = true`_
-  - Chiffrement EBS via `encryption_config` (KMS)
+  - Chiffrement EBS/EFS avec KMS (actuellement AWS-managed)
   - Logging control plane
   - Backups : Cluster (Velero) et Database (S3)
   - Branch Protection pour pipeline avec :
     - Distinction entre plan (PR) et apply (merge)
     - Approbation manuelle via environment production
   - CNI : Cillium
-  - Auto-scaling : Auto-Scaler (simple) / Karpenter (avancé)
+  - Auto-scaling : Karpenter

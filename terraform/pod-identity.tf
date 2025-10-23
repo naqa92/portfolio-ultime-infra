@@ -14,6 +14,18 @@ module "ebs_csi_pod_identity" {
   tags = var.tags
 }
 
+module "efs_csi_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+
+  name = "aws-efs-csi"
+
+  attach_aws_efs_csi_policy = true
+
+  # associations gérées dans le module EKS (voir addons)
+
+  tags = var.tags
+}
+
 module "aws_lb_controller_pod_identity" {
   source = "terraform-aws-modules/eks-pod-identity/aws"
 
