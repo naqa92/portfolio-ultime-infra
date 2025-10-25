@@ -82,7 +82,7 @@ aws secretsmanager create-secret \
 
 > _Pour supprimer un bucket S3 : `aws s3 rb s3://BUCKET_NAME --force`_
 
-> _Pour supprimer un secret AWS : `aws secretsmanager delete-secret --secret-id SECRET_NAME --force-delete-without-recovery --region eu-west-3`_
+> _Pour supprimer un secret AWS : `aws secretsmanager delete-secret --secret-id ghcr-token --force-delete-without-recovery --region eu-west-3`_
 
 - Secrets d'environnement GitHub :
 
@@ -463,12 +463,10 @@ Ce projet est sous licence MIT
 
 ## TODO
 
-- Tester Schema Atlas + EFS + update readme
-
 - Terraform :
 
   - Destroy :
-    - Gérer load balancer, route53 et ACM
+    - Gérer load balancer, route53, ACM et VPC (finalizers)
     - Sécurité du dispatch destroy
   - Passer d'ALB Controller à Gateway Controller
   - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
@@ -500,3 +498,4 @@ Ce projet est sous licence MIT
     - Approbation manuelle via environment production
   - CNI : Cillium
   - Auto-scaling : Karpenter
+  - Right-sizing : Cast.ai

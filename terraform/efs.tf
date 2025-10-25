@@ -35,9 +35,9 @@ resource "aws_security_group_rule" "efs_nfs_from_nodes" {
   from_port                = 2049
   to_port                  = 2049
   protocol                 = "tcp"
-  source_security_group_id = module.node_sg.security_group_id
+  source_security_group_id = module.eks.node_security_group_id
   security_group_id        = module.efs.security_group_id
-  description              = "Allow NFS (port 2049) from node security group"
+  description              = "Allow NFS (port 2049) from EKS node security group"
 }
 
 ################################################################################

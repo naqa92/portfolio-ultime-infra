@@ -129,12 +129,12 @@ EKS Cluster (Multi-AZ)
 
 **Use cases :**
 
-- ✅ Applications avec HPA et persistance
-- ✅ Données partagées entre plusieurs replicas
-- ✅ Uploads/assets utilisateurs
-- ✅ Logs centralisées
-- ✅ Datasets pour ML
-- ✅ Partage fichiers inter-pods
+- ✅ **Applications scalables (HPA)** : Plusieurs pods sur différents nœuds avec persistance partagée
+- ✅ **Multi-AZ resilience** : Stockage accessible depuis toutes les zones de disponibilité
+- ✅ **Uploads/assets utilisateurs** : Fichiers partagés entre replicas
+- ✅ **Logs centralisées** : Agrégation de logs multi-pods
+- ✅ **Datasets pour ML** : Partage de données d'entraînement
+- ✅ **Workloads collaboratifs** : Plusieurs pods lisant/écrivant simultanément
 
 **Exemple PVC :**
 

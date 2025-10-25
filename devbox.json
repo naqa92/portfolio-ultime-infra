@@ -2,9 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
   "packages": [
     "terraform@latest",
-    "awscli2@latest",
-    "gh@latest",
-    "kubernetes-helm@latest"
+    "kind@0.29.0",
+    "kubectl@1.33.3",
+    "kubecolor@0.5.1",
+    "kubectx@0.9.5",
+    "krew@0.4.5",
+    "k9s@0.50.9",
+    "kubernetes-helm@3.18.4",
+    "awscli2@latest"
   ],
   "shell": {
     "init_hook": [
