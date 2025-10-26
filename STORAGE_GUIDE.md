@@ -121,6 +121,12 @@ EKS Cluster (Multi-AZ)
 │   └── EFS Mount Target (eu-west-3b)
 │       └── NFS protocol (port 2049)
 │
+├── eu-west-3c
+│   ├── Node 3
+│   │   └── Pod 3 (mount /data)
+│   └── EFS Mount Target (eu-west-3c)
+│       └── NFS protocol (port 2049)
+│
 └── EFS File System (shared across AZ)
     └── Single namespace pour tous les pods
 ```

@@ -31,7 +31,7 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   description = "Availability zones"
   type        = list(string)
-  default     = ["eu-west-3a", "eu-west-3b"]
+  default     = ["eu-west-3a", "eu-west-3b", "eu-west-3c"]
 }
 
 # EKS Configuration
@@ -56,7 +56,7 @@ variable "node_instance_types" {
 variable "node_min_size" {
   description = "Minimum number of nodes in the node group"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_max_size" {
@@ -68,7 +68,7 @@ variable "node_max_size" {
 variable "node_desired_size" {
   description = "Desired number of nodes in the node group"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 # Tags

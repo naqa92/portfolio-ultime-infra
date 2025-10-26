@@ -135,8 +135,8 @@ Bucket S3 `portfolio-ultime-infra` avec `use_lockfile = true` (plus besoin de Dy
 
 ```bash
 VPC (10.0.0.0/16) avec support DNS
-├── Subnets privés: 10.0.0.0/19, 10.0.32.0/19 # multi-AZ (eu-west-3a et 3b)
-├── Subnets publics: 10.0.64.0/19, 10.0.96.0/19 # multi-AZ (eu-west-3a et 3b)
+├── Subnets privés: 10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24 # multi-AZ (eu-west-3a, 3b et 3c)
+├── Subnets publics: 10.0.101.0/24, 10.0.102.0/24, 10.0.103.0/24 # multi-AZ (eu-west-3a, 3b et 3c)
 └── Pods: gérés par VPC CNI dans les subnets
 ```
 
@@ -465,9 +465,7 @@ Ce projet est sous licence MIT
 
 - Terraform :
 
-  - Destroy :
-    - Gérer load balancer, route53, ACM et VPC (finalizers)
-    - Sécurité du dispatch destroy
+  - Destroy : Gérer load balancer, route53, ACM et VPC (finalizers)
   - Passer d'ALB Controller à Gateway Controller
   - Secret manager pour la synchronisation du repo `portfolio-ultime-config` en privé
 
@@ -486,8 +484,6 @@ Ce projet est sous licence MIT
 
 - EKS Production ready :
 
-  - Au moins 3 nodes
-  - Au moins 3 AZ
   - Access Entries : Mapping IAM ↔️ utilisateurs Kubernetes automatisé pour gérer plus finement les permissions d'accès au cluster (remplacement moderne de aws-auth)
     - _actuellement `enable_cluster_creator_admin_permissions = true`_
   - Chiffrement EBS/EFS avec KMS (actuellement AWS-managed)
@@ -495,7 +491,7 @@ Ce projet est sous licence MIT
   - Backups : Cluster (Velero) et Database (S3)
   - Branch Protection pour pipeline avec :
     - Distinction entre plan (PR) et apply (merge)
-    - Approbation manuelle via environment production
+    - Approbation manuelle via un environment github (apply + destroy)
   - CNI : Cillium
   - Auto-scaling : Karpenter
   - Right-sizing : Cast.ai
