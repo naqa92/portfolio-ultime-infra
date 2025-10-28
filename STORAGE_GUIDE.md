@@ -27,7 +27,6 @@ Provisioner: ebs.csi.aws.com
 Mode: RWO - ReadWriteOnce
 IOPS: 3000
 Throughput: 125 MB/s
-Encryption: Enabled
 ```
 
 ### Utilisation
@@ -99,7 +98,6 @@ Name: efs
 Provisioner: efs.csi.aws.com
 Mode: RWX - ReadWriteMany
 Type: Network File System (NFS)
-Encryption: Enabled
 Throughput: Elastic (auto-scaling)
 Backup: Enabled
 Lifecycle: Transition to IA après 30 jours
