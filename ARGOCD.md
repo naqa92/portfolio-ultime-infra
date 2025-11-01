@@ -2,7 +2,9 @@
 
 Repo git de configuration dédié : `portfolio-ultime-config`
 
-## Diff Preview automatisé avec argocd-diff-preview
+---
+
+## Diff Preview automatisé avec `argocd-diff-preview`
 
 Pour stabiliser et fiabiliser les revues de changements ArgoCD sur les pull requests, le repo dédié utilise l'outil [argocd-diff-preview](https://github.com/dag-andersen/argocd-diff-preview).
 
@@ -12,18 +14,77 @@ Pour stabiliser et fiabiliser les revues de changements ArgoCD sur les pull requ
 
 > _Voir le commentaire automatique sur chaque PR pour le rendu du diff ArgoCD_
 
-## Bootstrap ArgoCD
+---
+
+## Déploiement ArgoCD
+
+![ArgoCD UI](images/argocd.png)
+
+---
+
+### Boostrap
+
+- Installation d'ArgoCD via chart Helm avec Healthchecks personnalisés pour CNPG et Atlas
+
+- Déploiement des applications ArgoCD via la stratégie App-of-apps
+
+  - **Infrastructure** : Composants système (cert-manager, external-secrets, ALB controller, etc.)
+  - **Applications** : Workloads métier (todolist, CNPG, Atlas, etc.)
+
+> _Doc: [ArgoCD Anti-Patterns (Codefresh)](https://codefresh.io/blog/argo-cd-anti-patterns-for-gitops/)_
 
 - Multi-sources utilisés dans les apps ArgoCD afin de référencer des values locales pour une chart helm distante
 
   > _Il faut éviter d'utiliser multi-sources pour d'autres cas de figure_
 
-### ArgoCD - Déploiement
+---
 
-- Installation d'ArgoCD via chart Helm
-- Déploiement des applications ArgoCD via la stratégie App-of-apps
+### Sync-waves
 
-![ArgoCD UI](images/argocd.png)
+Les sync waves orchestrent le déploiement complet de l'infrastructure et des applications :
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ INFRASTRUCTURE                                              │
+├─────────────────────────────────────────────────────────────┤
+│ Wave -3: Operators & CRDs                                   │
+│   • cert-manager-crds                                       │
+│   • external-secrets-operator                               │
+│   • securecodebox-operator                                  │
+│         ↓                                                    │
+│ Wave -2: Custom Resources                                   │
+│   • cert-manager (ClusterIssuer)                           │
+│   • external-secrets (SecretStore, ExternalSecret)         │
+│         ↓                                                    │
+│ Wave -1: Infrastructure Services                            │
+│   • alb-controller                                          │
+│   • external-dns                                            │
+│   • cert-manager-sync                                       │
+│   • scb-autodiscovery                                       │
+│   • kubescape                                               │
+│   • headlamp                                                │
+├─────────────────────────────────────────────────────────────┤
+│ APPLICATIONS                                                │
+├─────────────────────────────────────────────────────────────┤
+│ Wave 0: Database Operators                                  │
+│   • cnpg-operator (CloudNativePG CRDs)                     │
+│   • atlas-operator (Migration engine)                      │
+│         ↓                                                    │
+│ Wave 1: Database Cluster                                    │
+│   • cnpg-cluster (PostgreSQL HA)                           │
+│         ↓                                                    │
+│ Wave 2: Schema Migration                                    │
+│   • atlas-schema (DDL execution)                           │
+│         ↓                                                    │
+│ Wave 3: Application Workloads                               │
+│   • todolist (Web app)                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> **Note** : Les waves négatives (-3, -2, -1) s'exécutent avant les waves positives (0, 1, 2, 3).
+> Cela garantit que toute l'infrastructure est prête avant le déploiement des applications.
+
+---
 
 ### AWS Load Balancer Controller
 
@@ -65,6 +126,8 @@ Pour stabiliser et fiabiliser les revues de changements ArgoCD sur les pull requ
 
 > _à configurer côté pod : terminationGracePeriodSeconds + ReadinessProbes_
 
+---
+
 ### External DNS
 
 Gestion automatique des enregistrements DNS Route 53
@@ -76,6 +139,8 @@ external-dns.alpha.kubernetes.io/hostname: app.ndebaa.com
 ```
 
 ![Route53](images/route53.png)
+
+---
 
 ### Cert Manager
 
@@ -115,17 +180,23 @@ Certificat ACM :
 
 ![Certificat ACM](images/acm.png)
 
+---
+
 ### CNPG (PostgreSQL)
 
 Cluster PostgreSQL pour l'application todolist via l'opérateur CNPG (1 primaire et 1 secondaire)
 
 ![CNPG](images/cnpg.png)
 
+---
+
 ### KubeScape (Test sécurité)
 
 Outil open-source de sécurité et de conformité pour Kubernetes qui analyse les configurations, détecte les vulnérabilités et applique les bonnes pratiques dans les clusters et les manifests.
 
 Dashboard utilisé : Headlamp (via plugin)
+
+---
 
 ### Headlamp
 
@@ -139,6 +210,8 @@ Compliance du framework cis-eks-t1.2.0 :
 ![Headlamp - Framework cis-eks-t1.2.0](images/headlamp.png)
 
 > [Doc in-cluster](https://headlamp.dev/docs/latest/installation/in-cluster/)
+
+---
 
 ### secureCodeBox (DAST)
 
@@ -205,6 +278,8 @@ spec:
 
 ![DAST Report](images/dast-report.png)
 
+---
+
 ### External Secret Operator (ESO)
 
 ESO permet de garder les secrets en dehors de git. L'opérateur surveille en continu les secrets afin de les synchroniser sur Kubernetes.
@@ -221,3 +296,11 @@ Dans ce projet, le secret nécessaire se nomme `ghcr-token`. Il permet de récup
 ![External Secrets](images/externalsecrets.png)
 
 > _Note: Statut OutOfSync dans ArgoCD dû au paramètre refreshInterval, mais les secrets sont bien présents et fonctionnels_
+
+---
+
+### Atlas Operator
+
+Atlas Operator permet de gérer les migrations de schéma de base de données de façon déclarative dans Kubernetes. Il s’intègre avec ArgoCD pour automatiser l’application des migrations lors des déploiements.
+
+> _Note: La [documentation](https://atlasgo.io/guides/deploying/k8s-argo) recommande d’utiliser les *sync waves* et des *health checks* personnalisés (Lua) pour gérer l’ordre d’application et la détection de readiness_
