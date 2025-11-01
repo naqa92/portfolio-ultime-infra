@@ -36,7 +36,7 @@ module "aws_lb_controller_pod_identity" {
   associations = {
     lbc = {
       cluster_name    = module.eks.cluster_name
-      namespace       = "kube-alb"
+      namespace       = "alb-system"
       service_account = "aws-load-balancer-controller"
     }
   }
@@ -74,7 +74,7 @@ module "cert_manager_pod_identity" {
   associations = {
     cert_manager = {
       cluster_name    = module.eks.cluster_name
-      namespace       = "kube-certmanager"
+      namespace       = "certmanager-system"
       service_account = "cert-manager"
     }
   }
@@ -103,7 +103,7 @@ module "cert_manager_sync_pod_identity" {
   associations = {
     cert_manager_sync = {
       cluster_name    = module.eks.cluster_name
-      namespace       = "kube-certmanager"
+      namespace       = "certmanager-system"
       service_account = "cert-manager-sync"
     }
   }
